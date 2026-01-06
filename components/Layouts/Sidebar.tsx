@@ -84,15 +84,15 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
   const handleLogout = async () => {
     try {
-      const res = await apiPost({
-        url: API_LOGOUT,
-        values: {},
-      });
+      // const res = await apiPost({
+      //   url: API_LOGOUT,
+      //   values: {},
+      // });
 
-      if (!res?.success) {
-        ShowToast(res?.error || "Logout failed", "error");
-        return;
-      }
+      // if (!res?.success) {
+      //   ShowToast(res?.error || "Logout failed", "error");
+      //   return;
+      // }
 
       ShowToast("Logout successfully", "success");
       dispatch(onLogoutSuccess());
@@ -133,7 +133,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           </ul>
         </div>
         <div className="flex w-full flex-col">
-          <div className="mb-3 flex h-6 items-center rounded-md px-2 text-xs font-semibold text-slate-600">Business</div>
+          {/* <div className="mb-3 flex h-6 items-center rounded-md px-2 text-xs font-semibold text-slate-600">Business</div> */}
           <ul className="flex w-full flex-col gap-1">
             {businessNavLinks.map((item) => {
               const active = isActive(item.href);
