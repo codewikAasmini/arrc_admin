@@ -1,0 +1,29 @@
+@media screen and (max-width: 767px) {
+ .sidebar {
+    max-width: 18rem;
+    transform: translateX(-100%);
+    transition: transform 0.4s ease-out;
+    position: fixed;
+    &.active {
+    transform: translateX(0);
+   }
+  }
+}
+
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+
+}
+
+@media screen and (min-width: 768px) {}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {}
+
+/* Medium devices (tablets, 768px and up) The navbar toggle appears at this breakpoint */
+@media (min-width: 768px) {}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {}

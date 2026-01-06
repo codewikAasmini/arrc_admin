@@ -1,0 +1,139 @@
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+@import "react-datepicker/dist/react-datepicker.css";
+
+/* ================================ THEME TOKENS ================================ */
+@theme {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+}
+
+/* Dark mode: override semantic tokens only */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #0a0a0a;
+    --color-foreground: #ededed;
+  }
+}
+
+/* ========== BASE ========== */
+:root {font-family: "Poppins", "Helvetica Neue", Helvetica, Arial, sans-serif;}
+
+body {@apply bg-background text-foreground;font-family: var(--font-poppins), sans-serif;}
+
+h1, h2, h3, h4, h5, h6, ul, li, p, a, button {font-family: inherit;}
+a {text-decoration: none;}
+button {cursor: pointer;}
+hr {margin: 0; border: 0; height: 1px; background-color: currentColor; opacity: 0.25; width: 100%;}
+
+@keyframes slide {
+  0% {background-position: 0 0;}
+  50% {background-position: 100% 0;}
+  100% {background-position: 0 0;}
+}
+.secondary-font {
+  font-family: var(--font-jakarta), sans-serif;
+}
+
+@keyframes fadeSlide {
+  0% {opacity: 0;transform: translateY(10px);}
+  100% {opacity: 1;transform: translateY(0);}
+}
+
+.animate-fade-slide {
+  animation: fadeSlide 0.6s ease-out;
+}
+
+
+.react-datepicker-wrapper,
+.react-datepicker__input-container { width: 100%;}
+.react-datepicker { background-color: #0e1320; border: 1px solid #2a3550; color: #ffffff; border-radius: 12px; font-family: inherit;}
+.react-datepicker__header { background-color: #182033; border-bottom: 1px solid #2a3550;}
+.react-datepicker__current-month,
+.react-datepicker__day-name { color: #e5e7eb; font-weight: 500;}
+.react-datepicker__day { color: #cbd5e1; border-radius: 6px; transition: all 0.2s ease;}
+.react-datepicker__day:hover { background-color: #f97316; color: #0e1320;}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected { background-color: #f97316; color: #0e1320; font-weight: 600;}
+.react-datepicker__day--today { border: 1px solid #f97316;}
+.react-datepicker__day--disabled { color: #64748b;}
+.react-datepicker__triangle { display: none;}
+
+/* ========== ARR – TVM PAGE ========== */
+.arr-bg {background: linear-gradient( to bottom, rgba(240, 245, 248, 0.96), rgba(255, 255, 255, 0.98) );}
+.arr-hero-wrap {position: relative; padding-top: 60px;}
+.arr-hero-glow { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 700px; height: 260px; background: radial-gradient( ellipse at center, rgba(56, 189, 248, 0.35), rgba(56, 189, 248, 0.12), transparent 70% ); filter: blur(60px); z-index: 0;}
+.arr-title {font-family: "Playfair Display", serif;color: var(--arr-text);}
+.arr-muted {color: var(--arr-muted);}
+.arr-main-card {background: #ffffff;border: 1px solid var(--arr-border);border-radius: 20px;box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);}
+.arr-result-card {background: #ffffff; border: 1px solid var(--arr-border); border-radius: 14px; padding: 20px; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);}
+.arr-value { font-size: 34px; font-weight: 700;}
+.arr-helper { font-size: 12px; color: var(--arr-muted);}
+
+
+/* ===============================
+   DARK FORM (ONBOARDING CARD) by amarjeet
+================================ */
+
+.arr-dark-bg {
+  background: radial-gradient(
+      ellipse at center,
+      rgba(255, 140, 0, 0.18),
+      transparent 65%
+    ),
+    linear-gradient(135deg, #140a05, #2a1208, #0b0a0f);
+}
+
+.arr-dark-card {
+  background: linear-gradient(to bottom, #1b2232, #0e1320);
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(255, 140, 0, 0.25);
+}
+
+.arr-dark-input {
+  @apply w-full rounded-lg px-4 py-3 text-sm
+    bg-[#182033] border border-[#2a3550]
+    text-white placeholder-gray-400
+    focus:outline-none focus:border-orange-500;
+}
+
+.arr-progress-active {
+  @apply h-1.5 w-8 rounded bg-orange-500;
+}
+
+.arr-progress-inactive {
+  @apply h-1.5 w-5 rounded bg-gray-600;
+}
+
+.arr-cta {
+  @apply w-full rounded-lg py-3 font-semibold text-white
+    bg-gradient-to-r from-orange-400 to-orange-600
+    hover:opacity-90 transition;
+}
+
+.loading-dots::after {
+  content: "";
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+  100% {
+    content: "";
+  }
+}
+
