@@ -18,6 +18,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { onLoginSuccess } from "@/redux/auth/authSlice";
+import { apiPost } from "@/utils/endpoints/common";
+import { API_ADMIN_LOGIN } from "@/utils/api/APIConstant";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
@@ -51,8 +53,6 @@ const LoginPage = () => {
                   />
                 </span>
               </div>
-
-              {/* Heading */}
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-slate-900">
                   Welcome to ARRC
@@ -61,37 +61,25 @@ const LoginPage = () => {
                   Admin sign in
                 </p>
               </div>
-
-              {/* Login Form */}
               <Formik
                 initialValues={{ email: "", password: "" }}
                 validationSchema={LoginSchema}
-                onSubmit={async (values, { setSubmitting }) => {
+                       onSubmit={async (values, { setSubmitting }) => {
                   try {
-                    const ADMIN_EMAIL = "admin@arrc.com";
-                    const ADMIN_PASSWORD = "123456";
+                    const response = await apiPost({
+                      url: API_ADMIN_LOGIN,
+                      values,
+                    });
 
-                    if (
-                      values.email === ADMIN_EMAIL &&
-                      values.password === ADMIN_PASSWORD
-                    ) {
-                      ShowToast("Login successful", "success");
-
-                      dispatch(
-                        onLoginSuccess({
-                          data: {
-                            email: ADMIN_EMAIL,
-                            role: "admin",
-                          },
-                        })
-                      );
-
-                      router.push("/dashboard");
-                    } else {
-                      ShowToast("Invalid credentials", "error");
+                    if (!response?.success) {
+                      ShowToast(response?.error || "Invalid credentials", "error");
+                      return;
                     }
+                    dispatch(onLoginSuccess({data: response.data}));
+                    ShowToast("Login successful", "success");
+                    router.push("/dashboard");
                   } catch {
-                    ShowToast("Something went wrong", "error");
+                    ShowToast("Network error. Please try again.", "error");
                   } finally {
                     setSubmitting(false);
                   }

@@ -2,14 +2,14 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { House, Wallet, Store, TrendingUp, CreditCard, MapPin, Crown, Calculator, CircleHelp, LogOut, Briefcase, Sparkles,} from "lucide-react";
+import { House, Wallet, Store, TrendingUp, CreditCard, MapPin, Crown, Calculator, CircleHelp, LogOut, Briefcase, Sparkles,Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onLogoutSuccess } from "@/redux/auth/authSlice";
 import { useDispatch } from "react-redux";
 import ShowToast from "../Common/ShowToast";
-import { API_LOGOUT } from "@/utils/api/APIConstant";
 import { apiPost } from "@/utils/endpoints/common";
+import { API_ADMIN_LOGOUT } from "@/utils/api/APIConstant";
 
 type NavLink = {
   label: string;
@@ -23,7 +23,21 @@ const mainNavLinks: NavLink[] = [
     href: "/dashboard",
     icon: <House className="w-5 h-5 text-cyan-600" />,
   },
- 
+   {
+    label: "User List",
+    href: "/user",
+    icon: <Users  className="w-5 h-5 text-cyan-600" />,
+  },
+   {
+    label: "Category",
+    href: "/category",
+    icon: <Users  className="w-5 h-5 text-cyan-600" />,
+  },
+    {
+    label: "Category Item",
+    href: "/categoryitem",
+    icon: <Users  className="w-5 h-5 text-cyan-600" />,
+  },
 ];
 
 const businessNavLinks: NavLink[] = [
@@ -84,15 +98,15 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
   const handleLogout = async () => {
     try {
-      // const res = await apiPost({
-      //   url: API_LOGOUT,
-      //   values: {},
-      // });
+      const res = await apiPost({
+        url: API_ADMIN_LOGOUT,
+        values: {},
+      });
 
-      // if (!res?.success) {
-      //   ShowToast(res?.error || "Logout failed", "error");
-      //   return;
-      // }
+      if (!res?.success) {
+        ShowToast(res?.error || "Logout failed", "error");
+        return;
+      }
 
       ShowToast("Logout successfully", "success");
       dispatch(onLogoutSuccess());

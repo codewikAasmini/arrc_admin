@@ -9,18 +9,10 @@ import { useSelector } from "react-redux";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/accounts": "Accounts",
-  "/business-analytics": "BusinessAnalytics",
-  "/business-suite": "BusinessSuite",
-  "/business-advertising": "BusinessAdvertising",
-  "/markets": "Markets",
-  "/member-card": "MemberCard",
-  "/merchants": "Merchants",
-  "/portfolio": "Portfolio",
-  "/transactions": "Transactions",
-  "/lets-level-up": "LetsLevelUp",
+  "/category": "Category",
+  "/categoryitem": "Category Item",
+  "/userlist": "User List",
 };
-
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -29,8 +21,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const [profile, setProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const pathname = usePathname();
-  const email = "admin@arrc.com";
-
+  const email = useSelector((state: any) => state.auth?.user?.email);
   const getReadableTitle = (path: string) => {
     return path
       .replace("/", "")
