@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { House, Wallet, Store, TrendingUp, CreditCard, MapPin, Crown, Calculator, CircleHelp, LogOut, Briefcase, Sparkles,Users } from "lucide-react";
+import { House, Wallet, Store, TrendingUp, CreditCard, MapPin, Crown, Calculator, CircleHelp, LogOut, Briefcase, Sparkles,Users,ShoppingBasket,PackageSearch   } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onLogoutSuccess } from "@/redux/auth/authSlice";
@@ -24,19 +24,19 @@ const mainNavLinks: NavLink[] = [
     icon: <House className="w-5 h-5 text-cyan-600" />,
   },
    {
-    label: "User List",
+    label: "Users List",
     href: "/user",
     icon: <Users  className="w-5 h-5 text-cyan-600" />,
   },
    {
-    label: "Category",
+    label: "Categories",
     href: "/category",
-    icon: <Users  className="w-5 h-5 text-cyan-600" />,
+    icon: <ShoppingBasket  className="w-5 h-5 text-cyan-600" />,
   },
     {
-    label: "Category Item",
+    label: "Category Items",
     href: "/categoryitem",
-    icon: <Users  className="w-5 h-5 text-cyan-600" />,
+    icon: <Store   className="w-5 h-5 text-cyan-600" />,
   },
 ];
 

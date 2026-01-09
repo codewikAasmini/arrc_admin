@@ -19,15 +19,10 @@ export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
-
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  // 🔍 SEARCH
   const [searchText, setSearchText] = useState("");
-
-  // ================= FETCH USERS =================
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -36,7 +31,7 @@ export default function UserList() {
         url: API_GET_ALL_USERS,
         page,
         rowsPerPage,
-        searchText: searchText, // ✅ IMPORTANT
+        searchText: searchText, 
       });
 
       if (res?.success) {
@@ -50,7 +45,6 @@ export default function UserList() {
     }
   };
 
-  // ================= UPDATE STATUS =================
   const updateUserStatus = async (userId: string, status: number) => {
     if (updatingId) return;
 
@@ -66,7 +60,6 @@ export default function UserList() {
     }
   };
 
-  // ================= DEBOUNCED FETCH =================
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchUsers();
@@ -81,8 +74,6 @@ export default function UserList() {
         <h1 className="text-3xl font-semibold mb-6 text-gray-800">
           Users
         </h1>
-
-        {/* 🔍 SEARCH BOX */}
         <div className="mb-4 flex justify-end">
           <input
             type="text"
@@ -96,8 +87,6 @@ export default function UserList() {
                        focus:outline-none focus:ring-2 focus:ring-black"
           />
         </div>
-
-        {/* TABLE */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {loading ? (
             <div className="p-10 text-center text-gray-500">
@@ -195,3 +184,211 @@ export default function UserList() {
     </div>
   );
 }
+
+
+// "use client";
+
+// import React, { useState } from "react";
+// import { useQuery } from "@tanstack/react-query";
+// import { Box, Button, Typography } from "@mui/material";
+
+// import { apiPatch, getApi } from "@/utils/endpoints/common";
+// import {
+//   API_GET_ALL_USERS,
+//   API_USER_STATUS_UPDATE,
+// } from "@/utils/api/APIConstant";
+
+// import SearchData from "../DataTable/SearchData";
+// import CommonTable, { Column } from "../Common/CommonTable";
+
+// /* ================= API TYPES ================= */
+
+// interface UserApiItem {
+//   _id: string;
+//   email: string;
+//   status: number;
+//   createdAt: string;
+// }
+
+// interface UsersApiResponse {
+//   data: {
+//     users: UserApiItem[];
+//     pagination: {
+//       totalRecords: number;
+//     };
+//   };
+// }
+
+// /* ================= TABLE ROW TYPE ================= */
+
+// interface UserRow {
+//   id: number;
+//   _id: string;
+//   email: string;
+//   status: boolean;
+//   createdAt: string;
+// }
+
+// /* ================= COMPONENT ================= */
+
+// export default function UserList() {
+//   const [searchText, setSearchText] = useState("");
+//   const [page, setPage] = useState(1); // 1-based
+//   const [rowsPerPage, setRowsPerPage] = useState(25);
+
+//   /* ================= FETCH USERS ================= */
+
+// const { data, isPending, refetch } = useQuery<UsersApiResponse>({
+//   queryKey: ["users", searchText, page, rowsPerPage],
+//   queryFn: () =>
+//     getApi({
+//       url: API_GET_ALL_USERS,
+//       page,
+//       rowsPerPage,
+//       searchText,
+//     }),
+//   placeholderData: (previousData) => previousData,
+// });
+
+//   /* ================= STATUS UPDATE ================= */
+
+//   const handleStatusUpdate = async (id: string, status: boolean) => {
+//     await apiPatch({
+//       url: API_USER_STATUS_UPDATE(id),
+//       values: { status: status ? 1 : 0 },
+//     });
+//     refetch();
+//   };
+
+//   /* ================= ROW MAPPING ================= */
+
+//   const users: UserRow[] = Array.isArray(data?.data?.users)
+//     ? data!.data.users.map((u, i) => ({
+//         id: i + 1 + (page - 1) * rowsPerPage,
+//         _id: u._id,
+//         email: u.email,
+//         status: !!u.status,
+//         createdAt: u.createdAt
+//           ? new Date(u.createdAt).toLocaleString()
+//           : "—",
+//       }))
+//     : [];
+
+//   const totalRecords = Number(
+//     data?.data?.pagination?.totalRecords ?? 0
+//   );
+
+//   const totalPages = Math.max(
+//     1,
+//     Math.ceil(totalRecords / rowsPerPage)
+//   );
+
+//   /* ================= COLUMNS ================= */
+
+// const columns: Column<UserRow>[] = [
+//   {
+//     key: "id",
+//     label: "ID",
+//     width: 100,        // ⬅️ 80 → 100
+//     nowrap: true,
+//   },
+//   {
+//     key: "email",
+//     label: "Email",
+//     width: 420,        // ⬅️ 360 → 420
+//   },
+//   {
+//     key: "status",
+//     label: "Status",
+//     width: 180,        // ⬅️ 140 → 180
+//     align: "center",
+//     render: (row) =>
+//       row.status ? (
+//         <Button
+//           variant="outlined"
+//           size="small"
+//           onClick={() => handleStatusUpdate(row._id, false)}
+//           sx={{ fontSize: 12, fontWeight: 600 }}
+//         >
+//           ACTIVE
+//         </Button>
+//       ) : (
+//         <Button
+//           variant="outlined"
+//           color="error"
+//           size="small"
+//           onClick={() => handleStatusUpdate(row._id, true)}
+//           sx={{ fontSize: 12, fontWeight: 600 }}
+//         >
+//           INACTIVE
+//         </Button>
+//       ),
+//   },
+//   {
+//     key: "createdAt",
+//     label: "Created At",
+//     width: 240,        // ⬅️ 200 → 240
+//     nowrap: true,
+//   },
+// ];
+
+
+//   /* ================= RANGE TEXT ================= */
+
+//   const rangeText = `Showing ${
+//     totalRecords === 0
+//       ? 0
+//       : (page - 1) * rowsPerPage + 1
+//   }–${Math.min(
+//     page * rowsPerPage,
+//     totalRecords
+//   )} of ${totalRecords}`;
+
+//   /* ================= RENDER ================= */
+
+//   return (
+//     <Box sx={{ width: "100%" }}>
+//       {/* HEADER */}
+//       <Box
+//         display="flex"
+//         justifyContent="space-between"
+//         alignItems="center"
+//         mb={2}
+//       >
+//         <Typography variant="h5" sx={{ fontWeight: 700 }}>
+//           Users List
+//         </Typography>
+
+//         <SearchData
+//           handleSearch={(text: string) => {
+//             setSearchText(text);
+//             setPage(1);
+//           }}
+//         />
+//       </Box>
+
+//       {/* TABLE */}
+//      <CommonTable
+//   columns={columns}
+//   rows={users}
+//   isLoading={isPending}
+//   emptyText="No users found."
+//   headerColor="#ff9a46"
+//   bordered
+//   rounded={10}
+//   showTopBar
+//   rangeText={rangeText}
+//   rowsPerPage={rowsPerPage}
+//   rowsPerPageOptions={[10, 25, 50, 100]}
+//   onRowsPerPageChange={(n) => {
+//     setRowsPerPage(n);
+//     setPage(1);
+//   }}
+//   page={page}
+//   totalPages={totalPages}
+//   onPageChange={(p) => setPage(p)}
+// />
+
+//     </Box>
+//   );
+// }
