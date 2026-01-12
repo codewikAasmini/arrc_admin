@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import {
   Box,
@@ -10,13 +11,27 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-const SearchData = ({ handleSearch, handleAdd, isAdd = false }: any) => {
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    let textSearch = event.target.value;
-    setSearchQuery(textSearch);
-    handleSearch(textSearch);
+interface SearchDataProps {
+  handleSearch: (value: string) => void;
+  handleAdd?: () => void;
+  isAdd?: boolean;
+}
+
+export default function SearchData({
+  handleSearch,
+  handleAdd,
+  isAdd = false,
+}: SearchDataProps) {
+  const [searchQuery, setSearchQuery] = React.useState<string>("");
+
+  const handleSearchChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = event.target.value;
+    setSearchQuery(value);
+    handleSearch(value);
   };
+
   const handleClearSearch = () => {
     setSearchQuery("");
     handleSearch("");
@@ -30,41 +45,35 @@ const SearchData = ({ handleSearch, handleAdd, isAdd = false }: any) => {
         placeholder="Search..."
         value={searchQuery}
         onChange={handleSearchChange}
+        sx={{ width: 260 }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon color="action" />
+              <SearchIcon fontSize="small" />
             </InputAdornment>
           ),
-          endAdornment: (
+          endAdornment: searchQuery ? (
             <InputAdornment position="end">
-              {searchQuery && (
-                <IconButton onClick={handleClearSearch} size="small">
-                  <ClearIcon />
-                </IconButton>
-              )}
+              <IconButton size="small" onClick={handleClearSearch}>
+                <ClearIcon fontSize="small" />
+              </IconButton>
             </InputAdornment>
-          ),
+          ) : null,
         }}
       />
-      {isAdd && (
+
+      {isAdd && handleAdd && (
         <Button
           variant="contained"
+          onClick={handleAdd}
           sx={{
             backgroundColor: "#fd7e14",
-            color: "#fff",
-            "&:hover": {
-              backgroundColor: "#e96d0a",
-            },
+            "&:hover": { backgroundColor: "#e96d0a" },
           }}
-          onClick={handleAdd}
         >
-          {" "}
           Add
         </Button>
       )}
     </Box>
   );
-};
-
-export default SearchData;
+}

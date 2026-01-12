@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import {
   API_GET_ALL_CATEGORY,
@@ -7,30 +6,30 @@ import {
   API_DELETE_CATEGORY,
   API_CREATE_CATEGORY,
 } from "@/utils/api/APIConstant";
-import { getApi, apiPatch, apiPost } from "@/utils/endpoints/common";
-import Pagination from "@/libs/pagination";
+import { getApi, apiPost } from "@/utils/endpoints/common";
 import { Pencil, Trash } from "lucide-react";
+
+import CommonTable, { Column } from "@/components/Common/CommonTable";
+
+/* ================= TYPES ================= */
 interface Category {
   _id: string;
-  name?: string;
-  slug?: string;
-  isActive?: boolean;
-  createdAt?: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
+/* ================= PAGE ================= */
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [rows, setRows] = useState<Category[]>([]);
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // 🔥 EDIT STATE
-  const [editItem, setEditItem] = useState<Category | null>(null);
-  const [editLoading, setEditLoading] = useState(false);
-
-  // 🔥 CREATE STATE
+  /* ===== CREATE ===== */
   const [showCreate, setShowCreate] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [newCategory, setNewCategory] = useState({
@@ -39,7 +38,11 @@ export default function CategoriesPage() {
     isActive: true,
   });
 
-  // ================= FETCH =================
+  /* ===== EDIT ===== */
+  const [editItem, setEditItem] = useState<Category | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+
+  /* ================= FETCH ================= */
 const fetchCategories = async () => {
   try {
     setLoading(true);
@@ -47,16 +50,18 @@ const fetchCategories = async () => {
     const res = await getApi({
       url: API_GET_ALL_CATEGORY,
       page,
-      rowsPerPage,
-      searchText: searchText, 
+      rowsPerPage,    
+      searchText,  
     });
 
-    setCategories(res.categories || []);
-    setTotalRecords(res.pagination?.totalRecords || 0);
+    setRows(res?.categories ?? []);
+    setTotalRecords(res?.pagination?.totalRecords ?? 0);
   } finally {
     setLoading(false);
   }
 };
+
+
 
 useEffect(() => {
   const timer = setTimeout(() => {
@@ -64,14 +69,15 @@ useEffect(() => {
   }, 400);
 
   return () => clearTimeout(timer);
-}, [page, searchText]);
+}, [searchText]);
 
+useEffect(() => {
+  fetchCategories();
+}, [page, rowsPerPage]);
 
+  /* ================= CREATE ================= */
   const createCategory = async () => {
-    if (!newCategory.name || !newCategory.slug) {
-      alert("Name and slug are required");
-      return;
-    }
+    if (!newCategory.name || !newCategory.slug) return;
 
     try {
       setCreateLoading(true);
@@ -79,7 +85,6 @@ useEffect(() => {
         url: API_CREATE_CATEGORY,
         values: newCategory,
       });
-
       setShowCreate(false);
       setNewCategory({ name: "", slug: "", isActive: true });
       fetchCategories();
@@ -88,7 +93,7 @@ useEffect(() => {
     }
   };
 
-  // ================= UPDATE =================
+  /* ================= UPDATE ================= */
   const updateCategory = async () => {
     if (!editItem) return;
 
@@ -110,221 +115,205 @@ useEffect(() => {
     }
   };
 
-  // ================= DELETE =================
+  /* ================= DELETE ================= */
   const deleteCategory = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
+    if (!confirm("Delete this category?")) return;
 
     await apiPost({
       url: API_DELETE_CATEGORY,
       values: { id },
     });
-
     fetchCategories();
   };
 
-  // ================= UI =================
+  /* ================= TABLE COLUMNS ================= */
+  const columns: Column<Category>[] = [
+    {
+      key: "name",
+      label: "Name",
+      width: 200,
+    },
+    {
+      key: "slug",
+      label: "Slug",
+      width: 200,
+    },
+    {
+      key: "isActive",
+      label: "Status",
+      width: 140,
+      render: (row) => (
+        <span
+          className={`font-medium ${
+            row.isActive ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {row.isActive ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Created",
+      width: 180,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+    {
+      key: "action",
+      label: "Action",
+      width: 140,
+      render: (row) => (
+        <div className="flex gap-3">
+          <button
+            onClick={() => setEditItem(row)}
+            className="text-blue-600 hover:opacity-80"
+          >
+            <Pencil size={18} />
+          </button>
+          <button
+            onClick={() => deleteCategory(row._id)}
+            className="text-red-600 hover:opacity-80"
+          >
+            <Trash size={18} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  /* ================= UI ================= */
   return (
-    <div className="flex-1 bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
-
-        {/* HEADER */}
+    <>
+      <div className="mx-auto w-full max-w-full px-4 sm:p-6 lg:p-8">
+        {/* ================= HEADER ================= */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-semibold text-gray-800">
-            Categories
-          </h1>
-              <div className="flex gap-3">
-    <input
-      type="text"
-      placeholder="Search category..."
-      value={searchText}
-      onChange={(e) => {
-        setPage(1);
-        setSearchText(e.target.value);
-      }}
-      className="px-3 py-2 border rounded-md text-sm
-                 focus:outline-none focus:ring-2 focus:ring-black"
-    />
+          <h1 className="MuiTypography-root MuiTypography-h5 css-stnzmu-MuiTypography-root">Categories</h1>
 
-    <button
-      onClick={() => setShowCreate(true)}
-      className="px-4 py-2 bg-black text-white rounded-md"
-    >
-      + Add Category
-    </button>
-  </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search category..."
+              value={searchText}
+              onChange={(e) => {
+                setPage(1);
+                setSearchText(e.target.value);
+              }}
+              className="px-3 py-2 border rounded-md text-sm
+                         focus:outline-none focus:ring-2 focus:ring-black"
+            />
+
+            <button
+              onClick={() => setShowCreate(true)}
+              className="px-4 py-2 bg-black text-white rounded-md"
+            >
+              + Add Category
+            </button>
+          </div>
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {loading ? (
-            <div className="p-10 text-center text-gray-500">
-              Loading categories...
-            </div>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left">Name</th>
-                  <th className="px-6 py-4 text-left">Slug</th>
-                  <th className="px-6 py-4 text-left">Status</th>
-                  <th className="px-6 py-4 text-left">Created</th>
-                  <th className="px-6 py-4 text-left">Action</th>
-                </tr>
-              </thead>
+        {/* ================= COMMON TABLE ================= */}
+        <CommonTable
+          columns={columns}
+          rows={rows}
+          isLoading={loading}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          totalRecords={totalRecords}
+          onPageChange={setPage}
+          onRowsPerPageChange={(size) => {
+            setRowsPerPage(size);
+            setPage(1);
+          }}
+        />
+      </div>
 
-              <tbody>
-                {categories.map((item) => (
-                  <tr key={item._id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4">{item.name}</td>
-                    <td className="px-6 py-4">{item.slug}</td>
-                    <td className="px-6 py-4">
-                      {item.isActive ? (
-                        <span className="text-green-600">Active</span>
-                      ) : (
-                        <span className="text-red-600">Inactive</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleDateString()
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4 flex gap-3">
-                      <button
-                        onClick={() => setEditItem(item)}
-                        className="text-blue-600 hover:underline"
-                      >
-                     <Pencil size={18} />
+      {/* ================= CREATE MODAL ================= */}
+      {showCreate && (
+        <Modal
+          title="Create Category"
+          loading={createLoading}
+          onClose={() => setShowCreate(false)}
+          onSubmit={createCategory}
+        >
+          <Input
+            placeholder="Name"
+            value={newCategory.name}
+            onChange={(e) =>
+              setNewCategory({ ...newCategory, name: e.target.value })
+            }
+          />
+          <Input
+            placeholder="Slug"
+            value={newCategory.slug}
+            onChange={(e) =>
+              setNewCategory({ ...newCategory, slug: e.target.value })
+            }
+          />
+        </Modal>
+      )}
 
-                      </button>
-                      <button
-                        onClick={() => deleteCategory(item._id)}
-                        className="text-red-600 hover:underline"
-                      >
-                         <Trash size={18} />
+      {/* ================= EDIT MODAL ================= */}
+      {editItem && (
+        <Modal
+          title="Edit Category"
+          loading={editLoading}
+          onClose={() => setEditItem(null)}
+          onSubmit={updateCategory}
+        >
+          <Input
+            value={editItem.name}
+            onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
+          />
+          <Input
+            value={editItem.slug}
+            onChange={(e) => setEditItem({ ...editItem, slug: e.target.value })}
+          />
+        </Modal>
+      )}
+    </>
+  );
+}
 
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+/* ================= HELPERS ================= */
+
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input {...props} className="w-full border px-3 py-2 mb-3 rounded-md" />
+  );
+}
+
+function Modal({
+  title,
+  children,
+  onClose,
+  onSubmit,
+  loading,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onSubmit: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg w-96">
+        <h2 className="text-lg font-semibold mb-4">{title}</h2>
+
+        {children}
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button onClick={onClose} className="px-4 py-2 border rounded">
+            Cancel
+          </button>
+          <button
+            disabled={loading}
+            onClick={onSubmit}
+            className="px-4 py-2 bg-black text-white rounded"
+          >
+            {loading ? "Saving..." : "Save"}
+          </button>
         </div>
-
-        {/* ================= CREATE MODAL ================= */}
-        {showCreate && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-96">
-              <h2 className="text-lg font-semibold mb-4">
-                Create Category
-              </h2>
-
-              <input
-                className="w-full border px-3 py-2 mb-3"
-                placeholder="Name"
-                value={newCategory.name}
-                onChange={(e) =>
-                  setNewCategory({ ...newCategory, name: e.target.value })
-                }
-              />
-
-              <input
-                className="w-full border px-3 py-2 mb-3"
-                placeholder="Slug"
-                value={newCategory.slug}
-                onChange={(e) =>
-                  setNewCategory({ ...newCategory, slug: e.target.value })
-                }
-              />
-
-              <label className="flex items-center gap-2 mb-4">
-                <input
-                  type="checkbox"
-                  checked={newCategory.isActive}
-                  onChange={(e) =>
-                    setNewCategory({
-                      ...newCategory,
-                      isActive: e.target.checked,
-                    })
-                  }
-                />
-                Active
-              </label>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="px-4 py-2 border"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={createLoading}
-                  onClick={createCategory}
-                  className="px-4 py-2 bg-black text-white"
-                >
-                  {createLoading ? "Creating..." : "Create"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= EDIT MODAL (UNCHANGED) ================= */}
-        {editItem && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-96">
-              <h2 className="text-lg font-semibold mb-4">Edit Category</h2>
-
-              <input
-                className="w-full border px-3 py-2 mb-3"
-                value={editItem.name || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, name: e.target.value })
-                }
-              />
-
-              <input
-                className="w-full border px-3 py-2 mb-3"
-                value={editItem.slug || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, slug: e.target.value })
-                }
-              />
-
-              <label className="flex items-center gap-2 mb-4">
-                <input
-                  type="checkbox"
-                  checked={!!editItem.isActive}
-                  onChange={(e) =>
-                    setEditItem({
-                      ...editItem,
-                      isActive: e.target.checked,
-                    })
-                  }
-                />
-                Active
-              </label>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setEditItem(null)}
-                  className="px-4 py-2 border"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={editLoading}
-                  onClick={updateCategory}
-                  className="px-4 py-2 bg-black text-white"
-                >
-                  {editLoading ? "Saving..." : "Update"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

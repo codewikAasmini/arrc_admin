@@ -1,4 +1,5 @@
 "use client";
+import Pagination from "@/libs/pagination";
 import React from "react";
 
 export type Column<Row = any> = {
@@ -7,9 +8,11 @@ export type Column<Row = any> = {
   width?: number | string;
   align?: "left" | "center" | "right";
   nowrap?: boolean;
-  headerStyle?: React.CSSProperties;
-  cellStyle?: React.CSSProperties;
-  render?: (row: Row, rowIndex: number) => React.ReactNode; // custom cell
+  headerClass?: string;
+  cellClass?: string;
+  render?: (row: Row, rowIndex: number) => React.ReactNode;
+  sortable?: boolean;
+  onSort?: () => void;
 };
 
 type CommonTableProps<Row = any> = {
@@ -17,251 +20,282 @@ type CommonTableProps<Row = any> = {
   rows: Row[];
   isLoading?: boolean;
   emptyText?: string;
-  headerColor?: string; // default brand color
-  rounded?: number; // border radius
-  bordered?: boolean; // wrapper border
-  wrapperStyle?: React.CSSProperties; // extra wrapper styles
-  showTopBar?: boolean;
-  rangeText?: string; // e.g. "Showing 1–10 of 42"
-  rowsPerPage?: number;
-  rowsPerPageOptions?: number[];
-  onRowsPerPageChange?: (size: number) => void;
   page?: number;
-  totalPages?: number;
+  totalRecords?: number;
+  rowsPerPage?: number;
   onPageChange?: (page: number) => void;
+  onRowsPerPageChange?: (size: number) => void;
+  stickyHeader?: boolean;
+  hoverable?: boolean;
+  striped?: boolean;
+  compact?: boolean;
+  bordered?: boolean;
+  shadow?: boolean;
+  rounded?: boolean;
+  className?: string;
 };
 
 export default function CommonTable<Row = any>({
   columns,
   rows,
   isLoading = false,
-  emptyText = "No data found.",
-  headerColor = "#0e0d0dff",
-  rounded = 10,
-  bordered = true,
-  wrapperStyle,
-  showTopBar = false,
-  rangeText,
-  rowsPerPage,
-  rowsPerPageOptions = [10, 25, 50, 100],
-  onRowsPerPageChange,
+  emptyText = "No data found",
   page,
-  totalPages,
+  totalRecords,
+  rowsPerPage,
   onPageChange,
+  onRowsPerPageChange,
+  stickyHeader = false,
+  hoverable = true,
+  striped = false,
+  compact = false,
+  bordered = true,
+  shadow = true,
+  rounded = true,
+  className = "",
 }: CommonTableProps<Row>) {
-  const hasPagination =
-    typeof page === "number" &&
-    typeof totalPages === "number" &&
-    typeof onPageChange === "function";
-
-    const thBase: React.CSSProperties = {
-      backgroundColor: headerColor,
-      color: "#fff",
-      borderColor: headerColor,
-      fontWeight: 600,
-      verticalAlign: "middle",
-      whiteSpace: "nowrap",
-      padding: "12px 24px",   // ⭐ HEADER horizontal + vertical gap
-    };
-
-  const baseBtn: React.CSSProperties = {
-    color: headerColor,
-    borderColor: headerColor,
-    backgroundColor: "transparent",
-    minWidth: 40,
-    padding: "6px 10px",
+  const getAlignmentClass = (align?: "left" | "center" | "right") => {
+    switch (align) {
+      case "left": return "text-start";
+      case "center": return "text-center";
+      case "right": return "text-end";
+      default: return "text-start";
+    }
   };
-  const activeBtn: React.CSSProperties = {
-    backgroundColor: headerColor,
-    color: "#fff",
-    borderColor: headerColor,
-    minWidth: 40,
-    padding: "6px 10px",
-  };
-  const disabledBtn: React.CSSProperties = {
-    color: "#adb5bd",
-    borderColor: "#e9ecef",
-    backgroundColor: "#f8f9fa",
-    minWidth: 40,
-    padding: "6px 10px",
-    cursor: "not-allowed",
-  };
-
-  const goPrev = () => onPageChange && page! > 1 && onPageChange(page! - 1);
-  const goNext = () =>
-    onPageChange && page! < totalPages! && onPageChange(page! + 1);
-
-  const pageNumbers = React.useMemo(() => {
-    if (!hasPagination) return [] as number[];
-    const windowSize = 5;
-    const start = Math.max(1, page! - Math.floor(windowSize / 2));
-    const end = Math.min(totalPages!, start + windowSize - 1);
-    const adjustedStart = Math.max(1, end - windowSize + 1);
-    return Array.from(
-      { length: end - adjustedStart + 1 },
-      (_, i) => adjustedStart + i
-    );
-  }, [hasPagination, page, totalPages]);
 
   return (
-    <div>
-      <div
-        className="table-responsive"
-        style={{
-          borderRadius: rounded,
-          border: bordered ? "1px solid #e9ecef" : undefined,
-          background: "#fff",
-          ...wrapperStyle,
-        }}
-      >
-        <table className="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              {columns.map((col, idx) => (
-                <th
-                  key={col.key}
-                  style={{
-                    ...thBase,
-                    ...(idx === 0 ? { borderTopLeftRadius: rounded } : {}),
-                    ...(idx === columns.length - 1
-                      ? { borderTopRightRadius: rounded }
-                      : {}),
-                    ...(col.width ? { width: col.width } : {}),
-                    ...(col.headerStyle || {}),
-                    ...(col.align === "center"
-                      ? { textAlign: "center" }
-                      : col.align === "right"
-                      ? { textAlign: "right" }
-                      : {}),
-                  }}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
+    <div className={`flex flex-col gap-4 ${className}`}>
+      {/* Table Container */}
+      <div className={`
+        overflow-hidden
+        bg-white
+        ${shadow ? "shadow-xs" : ""}
+        ${rounded ? "rounded-lg" : ""}
+        ${bordered ? "border border-gray-200" : ""}
+      `}>
+        <div className="overflow-x-auto">
+          <table className={`
+            w-full
+            ${compact ? "text-sm" : "text-base"}
+            ${bordered ? "divide-y divide-gray-200" : ""}
+          `}>
+            
+            {/* Table Header */}
+            <thead className={`
+              ${stickyHeader ? "sticky top-0 z-10" : ""}
+              bg-black/80 text-white backdrop-blur-xs
+              ${stickyHeader && shadow ? "shadow-xs" : ""}
+            `}>
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`
+                      px-6 py-3
+                      font-semibold
+                      text-gray-900
+                      tracking-wide
+                      ${getAlignmentClass(col.align)}
+                      ${col.nowrap ? "whitespace-nowrap" : "whitespace-normal"}
+                      ${col.headerClass || ""}
+                      ${bordered ? "border-b border-gray-200" : ""}
+                      ${compact ? "px-4 py-2" : ""}
+                      hover:bg-gray-100/50 transition-colors
+                    `}
+                    style={{ width: col.width }}
+                  >
+                    <div className={`
+                      flex items-center gap-2
+                      ${col.align === "right" ? "justify-end" : 
+                        col.align === "center" ? "justify-center" : "justify-start"}
+                    `}>
+                      <span className="truncate text-white">{col.label}</span>
+                      {col.sortable && (
+                        <button
+                          onClick={col.onSort}
+                          className="
+                            shrink-0
+                            size-4
+                            text-gray-400
+                            hover:text-gray-600
+                            active:text-gray-800
+                            transition-colors
+                            focus:outline-hidden
+                            focus-visible:ring-2
+                            focus-visible:ring-gray-300
+                            focus-visible:ring-offset-1
+                            rounded-xs
+                          "
+                          aria-label={`Sort by ${col.label}`}
+                        >
+                          <svg className="size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={columns.length} className="text-center py-5">
-                  <div
-                    className="spinner-border"
-                    role="status"
-                    aria-hidden="true"
-                  />
-                  <div className="mt-2">Loading…</div>
-                </td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="text-center py-5">
-                  {emptyText}
-                </td>
-              </tr>
-            ) : (
-              rows.map((row, rIdx) => (
-                <tr key={(row as any)._id ?? rIdx}>
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      style={{
-                        ...(col.cellStyle || {}),
-                        ...(col.align === "center"
-                          ? { textAlign: "center" }
-                          : col.align === "right"
-                          ? { textAlign: "right" }
-                          : {}),
-                        ...(col.nowrap ? { whiteSpace: "nowrap" } : {}),
-                      }}
-                    >
-                      {col.render
-                        ? col.render(row, rIdx)
-                        : (row as any)[col.key]}
-                    </td>
-                  ))}
+            {/* Table Body */}
+            <tbody className="divide-y divide-gray-200/50">
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-6 py-16 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="
+                        size-8
+                        border-2
+                        border-gray-300
+                        border-t-gray-900
+                        rounded-full
+                        animate-spin
+                      "></div>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-gray-900 font-medium">Loading data</span>
+                        <span className="text-sm text-gray-500">Please wait...</span>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-6 py-16 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <svg
+                        className="size-12 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-gray-900 font-medium text-lg">{emptyText}</span>
+                        <span className="text-gray-500">Try adjusting your search or filter</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row, i) => (
+                  <tr
+                    key={(row as any)._id ?? i}
+                    className={`
+                      bg-white
+                      ${hoverable ? "hover:bg-gray-50/80 transition-colors" : ""}
+                      ${striped && i % 2 === 1 ? "bg-gray-50/50" : ""}
+                      active:bg-gray-100/50
+                    `}
+                  >
+                    {columns.map((col) => (
+                      <td
+                        key={`${col.key}-${i}`}
+                        className={`
+                          px-6 py-4
+                          text-gray-700
+                          ${getAlignmentClass(col.align)}
+                          ${col.nowrap ? "whitespace-nowrap" : "whitespace-normal"}
+                          ${compact ? "px-4 py-3" : ""}
+                          ${col.cellClass || ""}
+                          ${bordered ? "border-b border-gray-200/50 last:border-b-0" : ""}
+                        `}
+                      >
+                        <div className={col.nowrap ? "truncate max-w-64" : ""}>
+                          {col.render
+                            ? col.render(row, i)
+                            : (row as any)[col.key] !== undefined && (row as any)[col.key] !== null
+                              ? (row as any)[col.key]
+                              : (
+                                <span className="text-gray-400 italic">—</span>
+                              )}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {hasPagination && (
-        <nav aria-label="Table pagination" className="mt-2">
-          <div className="d-flex justify-content-between align-items-center">
-            {!!onRowsPerPageChange && (
-              <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                <label className="mb-0 me-2 small">Rows per page</label>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 100 }}
-                  value={rowsPerPage}
-                  onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                >
-                  {rowsPerPageOptions.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <ul className="pagination mb-0" style={{ gap: 6 }}>
-              <li className={`page-item ${page! <= 1 ? "disabled" : ""}`}>
-                <button
-                  className="page-link"
-                  onClick={goPrev}
-                  style={{
-                    ...(page! <= 1 ? disabledBtn : baseBtn),
-                    borderRadius: 8,
-                  }}
-                >
-                  Prev
-                </button>
-              </li>
-
-              {pageNumbers.map((p) => {
-                const isActive = p === page;
-                return (
-                  <li
-                    key={p}
-                    className={`page-item ${isActive ? "active" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => onPageChange && onPageChange(p)}
-                      style={{
-                        ...(isActive ? activeBtn : baseBtn),
-                        borderRadius: 8,
-                      }}
-                    >
-                      {p}
-                    </button>
-                  </li>
-                );
-              })}
-
-              <li
-                className={`page-item ${
-                  page! >= totalPages! ? "disabled" : ""
-                }`}
-              >
-                <button
-                  className="page-link"
-                  onClick={goNext}
-                  style={{
-                    ...(page! >= totalPages! ? disabledBtn : baseBtn),
-                    borderRadius: 8,
-                  }}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
+      {/* Pagination */}
+      {page !== undefined && 
+       totalRecords !== undefined && 
+       rowsPerPage !== undefined && 
+       onPageChange && 
+       onRowsPerPageChange && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
+          <div className="text-sm text-gray-600">
+            Showing{" "}
+            <span className="font-semibold text-gray-900">
+              {Math.min((page - 1) * rowsPerPage + 1, totalRecords).toLocaleString()}
+            </span>{" "}
+            to{" "}
+            <span className="font-semibold text-gray-900">
+              {Math.min(page * rowsPerPage, totalRecords).toLocaleString()}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-900">
+              {totalRecords.toLocaleString()}
+            </span>{" "}
+            results
           </div>
-        </nav>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <label htmlFor="rows-per-page" className="text-sm text-gray-600 whitespace-nowrap">
+                Rows per page:
+              </label>
+              <select
+                id="rows-per-page"
+                value={rowsPerPage}
+                onChange={(e) => onRowsPerPageChange?.(Number(e.target.value))}
+                className="
+                  px-3 py-1.5
+                  text-sm
+                  border border-gray-300
+                  rounded-md
+                  bg-white
+                  text-gray-900
+                  focus:outline-hidden
+                  focus-visible:ring-2
+                  focus-visible:ring-gray-500
+                  focus-visible:border-transparent
+                  transition-shadow
+                "
+              >
+                {[10, 25, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <Pagination
+              page={page}
+              totalRecords={totalRecords}
+              rowsPerPage={rowsPerPage}
+              onPageChange={onPageChange}
+              onRowsPerPageChange={onRowsPerPageChange}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

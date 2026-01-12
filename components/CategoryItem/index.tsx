@@ -8,9 +8,10 @@ import {
   API_DELETE_CATEGORY_ITEM,
   API_GET_ALL_CATEGORY,
 } from "@/utils/api/APIConstant";
-import { apiPost, apiPatch, apiDelete, getApi } from "@/utils/endpoints/common";
-import Pagination from "@/libs/pagination";
+import { apiPost, apiPatch, getApi } from "@/utils/endpoints/common";
 import { Pencil, Trash } from "lucide-react";
+
+import CommonTable, { Column } from "@/components/Common/CommonTable";
 
 /* ================= TYPES ================= */
 
@@ -34,7 +35,7 @@ interface CategoryItem {
   createdAt?: string;
 }
 
-const emptyForm = {
+const EMPTY_FORM = {
   categoryId: "",
   name: "",
   description: "",
@@ -53,14 +54,14 @@ export default function CategoryItemPage() {
   const [items, setItems] = useState<CategoryItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
-  const [form, setForm] = useState<any>(emptyForm);
+  const [form, setForm] = useState<any>(EMPTY_FORM);
 
   /* ================= FETCH ITEMS ================= */
 
@@ -71,7 +72,13 @@ export default function CategoryItemPage() {
         url: API_GET_ALL_CATEGORY_ITEMS,
         values: { page, rowsPerPage, q: searchText },
       });
-      setItems(res?.items || []);
+
+      const mappedItems = (res?.items || []).map((item: any) => ({
+        ...item,
+        categoryId: item.categoryId ?? item.category_id ?? "",
+      }));
+
+      setItems(mappedItems);
       setTotalRecords(res?.pagination?.totalRecords || 0);
     } finally {
       setLoading(false);
@@ -81,71 +88,153 @@ export default function CategoryItemPage() {
   useEffect(() => {
     const t = setTimeout(fetchItems, 400);
     return () => clearTimeout(t);
-  }, [page, searchText]);
+  }, [page, rowsPerPage, searchText]);
 
   /* ================= FETCH CATEGORIES ================= */
 
-  const fetchCategories = async () => {
-       const res = await getApi({
-          url: API_GET_ALL_CATEGORY,
-          page,
-          rowsPerPage,
-          searchText: searchText, 
-        });
-    
-        setCategories(res.categories || []);
-        setTotalRecords(res.pagination?.totalRecords || 0);
-  };
-
   useEffect(() => {
-    fetchCategories();
+    getApi({ url: API_GET_ALL_CATEGORY }).then((res) => {
+      setCategories(res.categories || []);
+    });
   }, []);
 
   /* ================= SAVE ================= */
 
   const handleSave = async () => {
     if (!form.categoryId) {
-      alert("Please select a category");
+      alert("Please select category");
       return;
     }
+
+    const payload = {
+      ...form,
+      categoryId: form.categoryId,
+    };
 
     if (editingItem) {
       await apiPatch({
         url: API_UPDATE_CATEGORY_ITEM,
-        values: { id: editingItem._id, ...form },
+        values: { id: editingItem._id, ...payload },
       });
     } else {
       await apiPost({
         url: API_CREATE_CATEGORY_ITEM,
-        values: form,
+        values: payload,
       });
     }
 
     setShowModal(false);
     setEditingItem(null);
-    setForm(emptyForm);
+    setForm(EMPTY_FORM);
     fetchItems();
   };
 
   /* ================= DELETE ================= */
 
-const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this item?")) return;
 
+    await apiPost({
+      url: API_DELETE_CATEGORY_ITEM,
+      values: { id },
+    });
 
-  if (!confirm("Delete this item?")) return;
+    fetchItems();
+  };
 
-  await apiPost({
-    url: API_DELETE_CATEGORY_ITEM,
-    values: { id }, 
-  });
+  /* ================= TABLE COLUMNS ================= */
 
-  fetchItems();
-};
+  const columns: Column<CategoryItem>[] = [
+    {
+      key: "name",
+      label: "Name",
+      width: 220,
+      cellClass: "font-medium",
+    },
+
+    {
+      key: "stockSymbol",
+      label: "Symbol",
+      width: 120,
+      nowrap: true,
+      cellClass: "mono",
+    },
+
+    {
+      key: "price",
+      label: "Price",
+      width: 120,
+      align: "right",
+      render: (row) => `$${row.price.toFixed(2)}`,
+    },
+
+    {
+      key: "rewardRate",
+      label: "Reward",
+      width: 120,
+      align: "right",
+      render: (row) => row.rewardRate.toFixed(3),
+    },
+
+    {
+      key: "isActive",
+      label: "Status",
+      width: 100,
+      align: "center",
+      render: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs font-semibold ${
+            row.isActive
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {row.isActive ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+
+    {
+      key: "actions",
+      label: "Action",
+      width: 120,
+      align: "right",
+      render: (row) => (
+        <div className="flex justify-end gap-3">
+          <button
+            className="text-blue-600 hover:opacity-80"
+            onClick={() => {
+              setEditingItem(row);
+              setForm({
+                ...row,
+                categoryId:
+                  typeof row.categoryId === "object"
+                    ? row.categoryId._id
+                    : row.categoryId ?? "",
+              });
+              setShowModal(true);
+            }}
+          >
+            <Pencil size={18} />
+          </button>
+
+          <button
+            className="text-red-600 hover:opacity-80"
+            onClick={() => handleDelete(row._id)}
+          >
+            <Trash size={18} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  /* ================= UI ================= */
 
   return (
-    <div className="flex-1 bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
-
+    <>
+      <div className="mx-auto w-full max-w-full px-4 sm:p-6 lg:p-8">
+        {/* HEADER */}
         <div className="flex justify-between mb-6">
           <h1 className="text-3xl font-semibold">Category Items</h1>
 
@@ -159,10 +248,11 @@ const handleDelete = async (id: string) => {
               }}
               className="px-3 py-2 border rounded-md"
             />
+
             <button
               onClick={() => {
                 setEditingItem(null);
-                setForm(emptyForm);
+                setForm(EMPTY_FORM);
                 setShowModal(true);
               }}
               className="px-4 py-2 bg-black text-white rounded-md"
@@ -172,87 +262,34 @@ const handleDelete = async (id: string) => {
           </div>
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Symbol</th>
-                <th className="px-4 py-3 text-left">Price</th>
-                <th className="px-4 py-3 text-left">Reward</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((i) => (
-                <tr key={i._id} className="border-b">
-                  <td className="px-4 py-3">{i.name}</td>
-                  <td className="px-4 py-3">{i.stockSymbol}</td>
-                  <td className="px-4 py-3">{i.price}</td>
-                  <td className="px-4 py-3">{i.rewardRate}</td>
-                 <td
-                    className={`px-4 py-3 font-medium ${
-                        i.isActive ? "text-green-600" : "text-red-600"
-                    }`}
-                    >
-                    {i.isActive ? "Active" : "Inactive"}
-                    </td>
-                  <td className="px-4 py-3 text-right space-x-3">
-                    <button
-                      className="text-blue-600"
-                      onClick={() => {
-                        setEditingItem(i);
-                        setForm({
-                          ...i,
-                          categoryId:
-                            typeof i.categoryId === "object"
-                              ? i.categoryId._id
-                              : i.categoryId,
-                        });
-                        setShowModal(true);
-                      }}
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      className="text-red-600"
-                      onClick={() => handleDelete(i._id)}
-                    >
-                      <Trash size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
+        {/* COMMON TABLE */}
+        <CommonTable
+          columns={columns}
+          rows={items}
+          isLoading={loading}
           page={page}
           rowsPerPage={rowsPerPage}
           totalRecords={totalRecords}
-          loading={loading}
           onPageChange={setPage}
+          onRowsPerPageChange={(size) => {
+            setRowsPerPage(size);
+            setPage(1);
+          }}
         />
       </div>
 
-      {/* MODAL */}
+      {/* ================= MODAL ================= */}
+
       {showModal && (
         <Modal
           title={editingItem ? "Edit Category Item" : "Create Category Item"}
           onClose={() => setShowModal(false)}
         >
-          {/* CATEGORY DROPDOWN */}
-          <div className="grid grid-cols-4 gap-4 items-center">
-            <label className="text-sm text-gray-700">Category</label>
+          <FormRow label="Category">
             <select
               value={form.categoryId}
-              onChange={(e) =>
-                setForm({ ...form, categoryId: e.target.value })
-              }
-              className="col-span-3 border rounded px-3 py-2 text-sm"
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              className="w-full border px-3 py-2 rounded"
             >
               <option value="">Select Category</option>
               {categories.map((c) => (
@@ -261,40 +298,52 @@ const handleDelete = async (id: string) => {
                 </option>
               ))}
             </select>
-          </div>
+          </FormRow>
 
-          <FormRow label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormRow label="Description" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
-          <FormRow label="Stock Symbol" value={form.stockSymbol} onChange={(v) => setForm({ ...form, stockSymbol: v })} />
-          <FormRow label="Reward Rate" type="number" value={String(form.rewardRate)} onChange={(v) => setForm({ ...form, rewardRate: +v })} />
-          <FormRow label="Price" type="number" value={String(form.price)} onChange={(v) => setForm({ ...form, price: +v })} />
-          <FormRow label="Sort Order" type="number" value={String(form.sortOrder)} onChange={(v) => setForm({ ...form, sortOrder: +v })} />
-          <FormRow label="Image URL" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} />
-         <div className="grid grid-cols-4 gap-4 items-center">
-                <label className="text-sm text-gray-700">Featured</label>
-
-                <input
-                    type="checkbox"
-                    checked={Boolean(form.isFeatured)}
-                    onChange={(e) =>
-                    setForm({ ...form, isFeatured: e.target.checked })
-                    }
-                    className="h-4 w-4"
-                />
-                </div>
-
-          <ModalActions
-            onCancel={() => setShowModal(false)}
-            onSave={handleSave}
-            saveText={editingItem ? "Update" : "Create"}
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
           />
+          <Input
+            label="Description"
+            value={form.description}
+            onChange={(v) => setForm({ ...form, description: v })}
+          />
+          <Input
+            label="Stock Symbol"
+            value={form.stockSymbol}
+            onChange={(v) => setForm({ ...form, stockSymbol: v })}
+          />
+          <Input
+            label="Reward Rate"
+            type="number"
+            value={String(form.rewardRate)}
+            onChange={(v) => setForm({ ...form, rewardRate: +v })}
+          />
+          <Input
+            label="Price"
+            type="number"
+            value={String(form.price)}
+            onChange={(v) => setForm({ ...form, price: +v })}
+          />
+
+          <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+            <button onClick={() => setShowModal(false)}>Cancel</button>
+            <button
+              onClick={handleSave}
+              className="bg-black text-white px-5 py-2 rounded"
+            >
+              {editingItem ? "Update" : "Create"}
+            </button>
+          </div>
         </Modal>
       )}
-    </div>
+    </>
   );
 }
 
-/* ================= UI HELPERS ================= */
+/* ================= HELPERS ================= */
 
 function Modal({ title, children, onClose }: any) {
   return (
@@ -310,7 +359,16 @@ function Modal({ title, children, onClose }: any) {
   );
 }
 
-function FormRow({
+function FormRow({ label, children }: any) {
+  return (
+    <div className="grid grid-cols-4 gap-4 items-center">
+      <label className="text-sm text-gray-700">{label}</label>
+      <div className="col-span-3">{children}</div>
+    </div>
+  );
+}
+
+function Input({
   label,
   value,
   onChange,
@@ -322,312 +380,13 @@ function FormRow({
   type?: string;
 }) {
   return (
-    <div className="grid grid-cols-4 gap-4 items-center">
-      <label className="text-sm text-gray-700">{label}</label>
+    <FormRow label={label}>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="col-span-3 border rounded px-3 py-2 text-sm"
+        className="w-full border px-3 py-2 rounded"
       />
-    </div>
+    </FormRow>
   );
 }
-
-function ModalActions({ onCancel, onSave, saveText }: any) {
-  return (
-    <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-      <button onClick={onCancel}>Cancel</button>
-      <button onClick={onSave} className="bg-black text-white px-5 py-2 rounded">
-        {saveText}
-      </button>
-    </div>
-  );
-}
-
-
-
-
-
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import {
-//   API_GET_ALL_CATEGORY_ITEMS,
-//   API_CREATE_CATEGORY_ITEM,
-//   API_UPDATE_CATEGORY_ITEM,
-//   API_DELETE_CATEGORY_ITEM,
-// } from "@/utils/api/APIConstant";
-// import { apiPost, apiPatch, apiDelete } from "@/utils/endpoints/common";
-// import Pagination from "@/libs/pagination";
-// import { Pencil, Trash } from "lucide-react";
-
-// interface CategoryItem {
-//   _id: string;
-//   name?: string;
-//   slug?: string;
-//   isActive?: boolean;
-//   createdAt?: string;
-// }
-
-// export default function CategoryItemPage() {
-//   const [items, setItems] = useState<CategoryItem[]>([]);
-//   const [page, setPage] = useState(1);
-//   const rowsPerPage = 10;
-
-//   const [totalRecords, setTotalRecords] = useState(0);
-//   const [loading, setLoading] = useState(false);
-//   const [searchText, setSearchText] = useState("");
-
-//   // MODAL STATE
-//   const [showModal, setShowModal] = useState(false);
-//   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
-
-//   const [form, setForm] = useState({
-//     name: "",
-//     slug: "",
-//     isActive: true,
-//   });
-
-//   // ================= FETCH =================
-//   const fetchItems = async () => {
-//     try {
-//       setLoading(true);
-
-//       const res = await apiPost({
-//         url: API_GET_ALL_CATEGORY_ITEMS,
-//         values: {
-//           page,
-//           rowsPerPage,
-//           q: searchText,
-//         },
-//       });
-
-//       setItems(res?.items || []);
-//       setTotalRecords(res?.pagination?.totalRecords || 0);
-//     } catch (error) {
-//       console.error("Failed to fetch items", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ================= CREATE / UPDATE =================
-//   const handleSubmit = async () => {
-//     try {
-//       if (editingItem) {
-//         await apiPatch({
-//           url: API_UPDATE_CATEGORY_ITEM,
-//           values: {
-//             id: editingItem._id,
-//             ...form,
-//           },
-//         });
-//       } else {
-//         await apiPost({
-//           url: API_CREATE_CATEGORY_ITEM,
-//           values: form,
-//         });
-//       }
-
-//       setShowModal(false);
-//       setEditingItem(null);
-//       setForm({ name: "", slug: "", isActive: true });
-//       fetchItems();
-//     } catch (error) {
-//       console.error("Save failed", error);
-//     }
-//   };
-
-//   // ================= DELETE =================
-//   const handleDelete = async (id: string) => {
-//     if (!confirm("Are you sure you want to delete this item?")) return;
-
-//     try {
-//       await apiDelete({
-//         url: API_DELETE_CATEGORY_ITEM,
-//         params: id,
-//       });
-//       fetchItems();
-//     } catch (error) {
-//       console.error("Delete failed", error);
-//     }
-//   };
-
-//   // ================= EFFECT =================
-//   useEffect(() => {
-//     const timer = setTimeout(fetchItems, 400);
-//     return () => clearTimeout(timer);
-//   }, [page, searchText]);
-
-//   return (
-//     <div className="flex-1 bg-slate-50 p-6">
-//       <div className="max-w-7xl mx-auto">
-
-//         {/* HEADER */}
-//         <div className="flex justify-between items-center mb-6">
-//           <h1 className="text-3xl font-semibold text-gray-800">
-//             Category Items
-//           </h1>
-
-//           <div className="flex gap-2">
-//             <input
-//               type="text"
-//               placeholder="Search items..."
-//               value={searchText}
-//               onChange={(e) => {
-//                 setPage(1);
-//                 setSearchText(e.target.value);
-//               }}
-//               className="px-4 py-2 border rounded-md text-sm"
-//             />
-
-//             <button
-//               onClick={() => {
-//                 setEditingItem(null);
-//                 setForm({ name: "", slug: "", isActive: true });
-//                 setShowModal(true);
-//               }}
-//               className="px-4 py-2 bg-black text-white rounded-md text-sm"
-//             >
-//               + Create Item
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* TABLE */}
-//         <div className="bg-white rounded-xl shadow-md overflow-hidden">
-//           {loading ? (
-//             <div className="p-10 text-center text-gray-500">
-//               Loading items...
-//             </div>
-//           ) : (
-//             <table className="w-full">
-//               <thead className="bg-gray-50 border-b">
-//                 <tr>
-//                   <th className="px-6 py-4 text-left">Name</th>
-//                   <th className="px-6 py-4 text-left">Slug</th>
-//                   <th className="px-6 py-4 text-left">Status</th>
-//                   <th className="px-6 py-4 text-left">Created</th>
-//                   <th className="px-6 py-4 text-right">Actions</th>
-//                 </tr>
-//               </thead>
-
-//               <tbody>
-//                 {items.length === 0 ? (
-//                   <tr>
-//                     <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-//                       No items found
-//                     </td>
-//                   </tr>
-//                 ) : (
-//                   items.map((item) => (
-//                     <tr key={item._id} className="border-b hover:bg-gray-50">
-//                       <td className="px-6 py-4">{item.name}</td>
-//                       <td className="px-6 py-4">{item.slug}</td>
-//                       <td className="px-6 py-4">
-//                         {item.isActive ? "Active" : "Inactive"}
-//                       </td>
-//                       <td className="px-6 py-4">
-//                         {item.createdAt
-//                           ? new Date(item.createdAt).toLocaleDateString()
-//                           : "-"}
-//                       </td>
-//                       <td className="px-6 py-4 text-right space-x-2">
-//                         <button
-//                           className="text-blue-600"
-//                           onClick={() => {
-//                             setEditingItem(item);
-//                             setForm({
-//                               name: item.name || "",
-//                               slug: item.slug || "",
-//                               isActive: item.isActive ?? true,
-//                             });
-//                             setShowModal(true);
-//                           }}
-//                         >
-                     
-//                              <Pencil size={18} />
-//                         </button>
-//                         <button
-//                           className="text-red-600"
-//                           onClick={() => handleDelete(item._id)}
-//                         >
-//                          <Trash size={18} />
-//                         </button>
-//                       </td>
-//                     </tr>
-//                   ))
-//                 )}
-//               </tbody>
-//             </table>
-//           )}
-//         </div>
-
-//         {/* PAGINATION */}
-//         <Pagination
-//           page={page}
-//           rowsPerPage={rowsPerPage}
-//           totalRecords={totalRecords}
-//           loading={loading}
-//           onPageChange={setPage}
-//         />
-//       </div>
-
-//       {/* MODAL */}
-//       {showModal && (
-//         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-//           <div className="bg-white rounded-lg p-6 w-96 space-y-4">
-//             <h2 className="text-lg font-semibold">
-//               {editingItem ? "Edit Item" : "Create Item"}
-//             </h2>
-
-//             <input
-//               placeholder="Name"
-//               value={form.name}
-//               onChange={(e) =>
-//                 setForm({ ...form, name: e.target.value })
-//               }
-//               className="w-full border px-3 py-2 rounded"
-//             />
-
-//             <input
-//               placeholder="Slug"
-//               value={form.slug}
-//               onChange={(e) =>
-//                 setForm({ ...form, slug: e.target.value })
-//               }
-//               className="w-full border px-3 py-2 rounded"
-//             />
-
-//             <label className="flex items-center gap-2 text-sm">
-//               <input
-//                 type="checkbox"
-//                 checked={form.isActive}
-//                 onChange={(e) =>
-//                   setForm({ ...form, isActive: e.target.checked })
-//                 }
-//               />
-//               Active
-//             </label>
-
-//             <div className="flex justify-end gap-2">
-//               <button
-//                 onClick={() => setShowModal(false)}
-//                 className="px-4 py-2 border rounded"
-//               >
-//                 Cancel
-//               </button>
-//               <button
-//                 onClick={handleSubmit}
-//                 className="px-4 py-2 bg-black text-white rounded"
-//               >
-//                 Save
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
